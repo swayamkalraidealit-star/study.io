@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import AudioPlayer from '../components/AudioPlayer';
-import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut } from 'lucide-react';
+import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -109,6 +109,17 @@ const Dashboard = () => {
               {user.plan.toUpperCase()} PLAN
             </div>
             <ThemeToggle />
+            {user.role === 'admin' && (
+              <button 
+                onClick={() => navigate('/admin')}
+                className="btn btn-primary"
+                style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                title="Admin Dashboard"
+              >
+                <Shield size={18} />
+                Admin
+              </button>
+            )}
             <button 
               onClick={handleLogout}
               className="btn btn-secondary"
