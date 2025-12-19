@@ -7,7 +7,12 @@ logger = logging.getLogger(__name__)
 
 class StudyService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+        api_key = settings.OPENAI_API_KEY
+        if api_key and api_key.startswith("ey"):
+            logger.error("OPENAI_API_KEY appears to be a JWT token instead of a valid OpenAI API key.")
+            self.client = None
+        else:
+            self.client = AsyncOpenAI(api_key=api_key) if api_key else None
 
     async def generate_content(
         self, 
