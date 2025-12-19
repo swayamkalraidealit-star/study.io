@@ -1,0 +1,79 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api';
+import { LogIn, UserPlus } from 'lucide-react';
+
+const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (isLogin) {
+        const formData = new FormData();
+        formData.append('username', email);
+        formData.append('password', password);
+        const response = await api.post('/auth/login', formData);
+        localStorage.setItem('token', response.data.access_token);
+        navigate('/dashboard');
+      } else {
+        await api.post('/auth/register', { email, password, full_name: fullName });
+        setIsLogin(true);
+        setError('Registration successful! Please login.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'An error occurred');
+    }
+  };
+
+  return (
+    <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          {isLogin ? 'Welcome Back' : 'Create Account'}
+        </h2>
+        
+        {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div className="input-group">
+              <label>Full Name</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            </div>
+          )}
+          <div className="input-group">
+            <label>Email Address</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="input-group">
+            <label>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>
+            {isLogin ? <><LogIn size={18} /> Login</> : <><UserPlus size={18} /> Register</>}
+          </button>
+        </form>
+
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <span 
+            onClick={() => setIsLogin(!isLogin)} 
+            style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}
+          >
+            {isLogin ? 'Register' : 'Login'}
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
