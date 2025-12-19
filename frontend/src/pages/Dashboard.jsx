@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle';
 
 const Dashboard = () => {
   const [prompt, setPrompt] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
   const [topic, setTopic] = useState('');
   const [duration, setDuration] = useState(3);
   const [history, setHistory] = useState([]);
@@ -67,6 +68,7 @@ const Dashboard = () => {
     try {
       const res = await api.post('/study/generate', {
         prompt,
+        system_prompt: systemPrompt,
         topic,
         duration_minutes: parseInt(duration),
         exam_mode: examMode,
@@ -76,6 +78,7 @@ const Dashboard = () => {
       fetchHistory();
       fetchUser(); // Refresh daily count
       setPrompt('');
+      setSystemPrompt('');
       setTopic('');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to generate study content');
@@ -224,6 +227,16 @@ const Dashboard = () => {
                     </span>
                   </label>
                 )}
+              </div>
+
+              <div className="input-group">
+                <label><BookOpen size={14} /> System Prompt (Optional)</label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. You are a pirate teaching history..."
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                />
               </div>
 
               <div className="input-group">

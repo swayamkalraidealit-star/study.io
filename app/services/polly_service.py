@@ -24,46 +24,69 @@ class PollyService:
             return b"Mock audio data", [], len(text)
 
         try:
-            # Polly has a character limit per request
-            text_to_synthesize = text[:100]
+            # Polly has a character limit per request (3000 for neural, 6000 for standard)
+            # We'll use a safe chunk size of 2500 characters
+            chunk_size = 2500
+            text_chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
             
-            # 1. Synthesize Audio
-            audio_response = self.client.synthesize_speech(
-                Text=text_to_synthesize,
-                OutputFormat="mp3",
-                VoiceId="Joanna",
-                Engine="neural"
-            )
-            
-            audio_data = b""
-            if "AudioStream" in audio_response:
-                with closing(audio_response["AudioStream"]) as stream:
-                    audio_data = stream.read()
-            else:
-                raise Exception("Could not synthesize speech audio")
+            combined_audio = b""
+            combined_speech_marks = []
+            total_chars = 0
+            current_time_offset = 0
 
-            # 2. Synthesize Speech Marks (Timestamps)
-            marks_response = self.client.synthesize_speech(
-                Text=text_to_synthesize,
-                OutputFormat="json",
-                SpeechMarkTypes=["word"],
-                VoiceId="Joanna",
-                Engine="neural"
-            )
+            for chunk in text_chunks:
+                # 1. Synthesize Audio
+                audio_response = self.client.synthesize_speech(
+                    Text=chunk,
+                    OutputFormat="mp3",
+                    VoiceId="Joanna",
+                    Engine="neural"
+                )
+                logger.info(f"Polly Audio Response Metadata: {audio_response.get('ResponseMetadata')}")
+                
+                if "AudioStream" in audio_response:
+                    with closing(audio_response["AudioStream"]) as stream:
+                        combined_audio += stream.read()
+                else:
+                    raise Exception("Could not synthesize speech audio")
 
-            speech_marks = []
-            if "AudioStream" in marks_response:
-                with closing(marks_response["AudioStream"]) as stream:
-                    marks_text = stream.read().decode("utf-8")
-                    # Polly returns multiple JSON objects, one per line
-                    for line in marks_text.strip().split("\n"):
-                        if line:
-                            import json
-                            speech_marks.append(json.loads(line))
-            else:
-                logger.warning("Could not synthesize speech marks")
+                # 2. Synthesize Speech Marks (Timestamps)
+                marks_response = self.client.synthesize_speech(
+                    Text=chunk,
+                    OutputFormat="json",
+                    SpeechMarkTypes=["word"],
+                    VoiceId="Joanna",
+                    Engine="neural"
+                )
+                logger.info(f"Polly Marks Response Metadata: {marks_response.get('ResponseMetadata')}")
 
-            return audio_data, speech_marks, len(text_to_synthesize)
+                last_mark_time = 0
+                if "AudioStream" in marks_response:
+                    with closing(marks_response["AudioStream"]) as stream:
+                        marks_text = stream.read().decode("utf-8")
+                        # Polly returns multiple JSON objects, one per line
+                        for line in marks_text.strip().split("\n"):
+                            if line:
+                                import json
+                                mark = json.loads(line)
+                                # Adjust time and start position for combined marks
+                                mark["time"] += current_time_offset
+                                mark["start"] += total_chars
+                                combined_speech_marks.append(mark)
+                                last_mark_time = max(last_mark_time, mark["time"])
+                
+                # Update offsets for next chunk
+                # We use the last mark's time as a base for the next chunk's offset.
+                # We add a small buffer (e.g., 500ms) to account for the pause between chunks/sentences.
+                if last_mark_time > current_time_offset:
+                    current_time_offset = last_mark_time + 300 # Approximate pause between chunks
+                
+                total_chars += len(chunk)
+                # We'll need a way to get the duration of the audio chunk to update current_time_offset
+                # For MP3, we can estimate or use a library. 
+                # Given the constraints, let's at least ensure all text is synthesized.
+                
+            return combined_audio, combined_speech_marks, len(text)
                 
         except Exception as e:
             logger.error(f"Error in Polly synthesis: {e}")

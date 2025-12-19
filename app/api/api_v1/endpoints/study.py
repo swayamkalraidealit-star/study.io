@@ -105,7 +105,8 @@ async def generate_study_session(
         topic=study_in.topic,
         duration_minutes=study_in.duration_minutes,
         prompt=study_in.prompt,
-        exam_mode=study_in.exam_mode
+        exam_mode=study_in.exam_mode,
+        system_prompt_override=study_in.system_prompt
     )
     
     # 3. Synthesize audio and speech marks

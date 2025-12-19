@@ -20,7 +20,8 @@ class StudyService:
         topic: str, 
         duration_minutes: int, 
         prompt: str,
-        exam_mode: bool = False
+        exam_mode: bool = False,
+        system_prompt_override: str = None
     ) -> tuple[str, int]:
         if not self.client:
             logger.warning("OpenAI client not initialized. Returning mock content.")
@@ -47,21 +48,29 @@ class StudyService:
         
         base_prompt = topic_template.format(topic=topic)
         
-        system_prompt = (
-            "You are a professional study assistant. "
-            f"{base_prompt} "
-            f"The content MUST be suitable for an audio presentation of approximately {duration_minutes} minutes. "
-            f"STRICT LIMIT: Do not exceed {max_chars} characters. "
-            "Structure the content with clear headings and a logical flow."
+        if system_prompt_override:
+            system_prompt = system_prompt_override
+        else:
+            system_prompt = (
+                "You are an expert academic tutor. Your goal is to generate high-quality, "
+                "engaging, and educational study content based on a specific topic and user requirements."
+            )
+
+        # Always append constraints to ensure output fits app requirements
+        system_prompt += (
+            f"\n\nTOPIC: {topic}\n"
+            f"CONTENT TYPE: Study Guide for a {duration_minutes}-minute audio presentation.\n"
+            f"STRICT LIMIT: Do not exceed {max_chars} characters.\n"
+            "STRUCTURE: Use clear headings, logical flow, and engaging language suitable for listening."
         )
 
         if exam_mode:
             system_prompt += (
-                "\n\nEXAM MODE ENABLED: Focus on concise, revision-focused summaries. "
-                "Use bullet points for key facts and provide clear definitions for important terms."
+                "\n\nEXAM MODE ENABLED: Focus on high-yield information, concise revision-focused summaries, "
+                "bullet points for key facts, and clear definitions."
             )
         
-        user_prompt = f"Additional Context/Instructions: {prompt}"
+        user_prompt = f"Topic Template Context: {base_prompt}\n\nSpecific Study Requirements/Instructions: {prompt}"
         
         # Estimate tokens (roughly 1 token per 4 characters)
         max_tokens = (max_chars // 4) + 500 
@@ -75,13 +84,17 @@ class StudyService:
                 ],
                 max_tokens=max_tokens
             )
+            logger.info(f"Full OpenAI Response:\n{response.model_dump_json(indent=2)}")
             content = response.choices[0].message.content
+            usage = response.usage.total_tokens
+            
+            logger.info(f"OpenAI Response Content: {content}")
+            logger.info(f"OpenAI Response Usage: {usage} tokens")
             
             # Final trim to ensure strict limit
             if len(content) > max_chars:
                 content = content[:max_chars].rsplit('.', 1)[0] + '.'
                 
-            usage = response.usage.total_tokens
             return content, usage
         except Exception as e:
             logger.error(f"Error generating content: {e}")

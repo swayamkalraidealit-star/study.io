@@ -8,6 +8,7 @@ class StudyPrompt(BaseModel):
     duration_minutes: int  # 3, 5, or 10
     exam_mode: bool = False
     text_highlighting: bool = False
+    system_prompt: Optional[str] = None
 
 class StudySessionResponse(BaseModel):
     id: str
