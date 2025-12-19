@@ -13,15 +13,36 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
 
+  const [examMode, setExamMode] = useState(false);
+  const [textHighlighting, setTextHighlighting] = useState(false);
+
+  const [config, setConfig] = useState(null);
+
   useEffect(() => {
     fetchUser();
     fetchHistory();
+    fetchConfig();
   }, []);
 
   const fetchUser = async () => {
     try {
       const res = await api.get('/auth/me');
       setUser(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const res = await api.get('/study/config');
+      setConfig(res.data);
+      // Set default duration if not already set or if trial
+      if (user?.plan === 'trial') {
+        setDuration(3);
+      } else if (res.data.allowed_durations?.length > 0) {
+        setDuration(res.data.allowed_durations[0]);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -44,10 +65,13 @@ const Dashboard = () => {
       const res = await api.post('/study/generate', {
         prompt,
         topic,
-        duration_minutes: parseInt(duration)
+        duration_minutes: parseInt(duration),
+        exam_mode: examMode,
+        text_highlighting: textHighlighting
       });
       setCurrentSession(res.data);
       fetchHistory();
+      fetchUser(); // Refresh daily count
       setPrompt('');
       setTopic('');
     } catch (err) {
@@ -65,8 +89,14 @@ const Dashboard = () => {
           <p style={{ color: 'var(--text-muted)' }}>Welcome back, {user?.full_name || 'User'}</p>
         </div>
         {user && (
-          <div className={`badge badge-${user.plan}`}>
-            {user.plan.toUpperCase()} PLAN
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ textAlign: 'right', fontSize: '0.875rem' }}>
+              <div style={{ color: 'var(--text-muted)' }}>Daily Generations</div>
+              <div style={{ fontWeight: 'bold' }}>{user.daily_generations || 0} / 5</div>
+            </div>
+            <div className={`badge badge-${user.plan}`}>
+              {user.plan.toUpperCase()} PLAN
+            </div>
           </div>
         )}
       </header>
@@ -77,36 +107,114 @@ const Dashboard = () => {
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '1.25rem' }}>
               <Sparkles size={20} color="var(--primary)" /> New Study Session
             </h2>
-            
+
             {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
 
             <form onSubmit={handleGenerate}>
               <div className="input-group">
                 <label><Tag size={14} /> Topic</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Quantum Physics, Roman History" 
-                  value={topic} 
-                  onChange={(e) => setTopic(e.target.value)} 
-                  required 
-                />
+                <select 
+                  value={config?.topics?.some(t => t.name === topic) ? topic : (topic ? 'Custom' : '')} 
+                  onChange={(e) => {
+                    if (e.target.value === 'Custom') {
+                      setTopic('');
+                    } else {
+                      setTopic(e.target.value);
+                    }
+                  }} 
+                  required
+                >
+                  <option value="">Select a topic...</option>
+                  {config?.topics?.map(t => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                  <option value="Custom">Custom Topic</option>
+                </select>
               </div>
               
+              {(!config?.topics?.some(t => t.name === topic) && topic !== '') || (config?.topics?.some(t => t.name === topic) === false && topic === '') ? (
+                <div className="input-group">
+                  <label>Enter Topic</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Quantum Physics" 
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)} 
+                    required 
+                  />
+                </div>
+              ) : null}
+
               <div className="input-group">
                 <label><Clock size={14} /> Duration (Minutes)</label>
-                <select value={duration} onChange={(e) => setDuration(e.target.value)}>
-                  <option value="3">3 Minutes</option>
-                  <option value="5">5 Minutes</option>
-                  <option value="10">10 Minutes</option>
+                <select 
+                  value={duration} 
+                  onChange={(e) => setDuration(e.target.value)}
+                >
+                  {config?.allowed_durations?.map(d => {
+                    const access = config.plan_access?.durations?.[d.toString()] || ['paid'];
+                    const hasAccess = access.includes(user?.plan);
+                    return (
+                      <option key={d} value={d} disabled={!hasAccess}>
+                        {d} Minutes {!hasAccess && '(Locked)'}
+                      </option>
+                    );
+                  })}
                 </select>
+                {user?.plan === 'trial' && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Upgrade to access longer durations.
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                {config?.features_enabled?.exam_mode && (
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    cursor: !(config.plan_access?.exam_mode?.includes(user?.plan)) ? 'not-allowed' : 'pointer', 
+                    opacity: !(config.plan_access?.exam_mode?.includes(user?.plan)) ? 0.5 : 1 
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={examMode} 
+                      onChange={(e) => setExamMode(e.target.checked)}
+                      disabled={!(config.plan_access?.exam_mode?.includes(user?.plan))}
+                    />
+                    <span style={{ fontSize: '0.875rem' }}>
+                      Exam Mode {!(config.plan_access?.exam_mode?.includes(user?.plan)) && '🔒'}
+                    </span>
+                  </label>
+                )}
+                {config?.features_enabled?.text_highlighting && (
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    cursor: !(config.plan_access?.text_highlighting?.includes(user?.plan)) ? 'not-allowed' : 'pointer', 
+                    opacity: !(config.plan_access?.text_highlighting?.includes(user?.plan)) ? 0.5 : 1 
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={textHighlighting} 
+                      onChange={(e) => setTextHighlighting(e.target.checked)}
+                      disabled={!(config.plan_access?.text_highlighting?.includes(user?.plan))}
+                    />
+                    <span style={{ fontSize: '0.875rem' }}>
+                      Text Highlighting {!(config.plan_access?.text_highlighting?.includes(user?.plan)) && '🔒'}
+                    </span>
+                  </label>
+                )}
               </div>
 
               <div className="input-group">
                 <label><BookOpen size={14} /> What do you want to study?</label>
-                <textarea 
-                  rows="4" 
-                  placeholder="Enter your prompt here..." 
-                  value={prompt} 
+                <textarea
+                  rows="4"
+                  placeholder="Enter your prompt here..."
+                  value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   required
                 />
@@ -120,9 +228,13 @@ const Dashboard = () => {
 
           {currentSession && (
             <div style={{ marginTop: '2rem' }}>
-              <AudioPlayer 
-                src={`http://localhost:8000${currentSession.audio_url}`} 
-                title={currentSession.topic} 
+              <AudioPlayer
+                src={`http://localhost:8000${currentSession.audio_url}`}
+                title={currentSession.topic}
+                content={currentSession.content}
+                speechMarks={currentSession.speech_marks}
+                userPlan={user?.plan}
+                listenCount={currentSession.listen_count}
               />
             </div>
           )}
@@ -133,15 +245,15 @@ const Dashboard = () => {
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '1.25rem' }}>
               <History size={20} color="var(--primary)" /> Recent History
             </h2>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {history.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem' }}>No history yet. Start your first session!</p>
               ) : (
                 history.map((session) => (
-                  <div 
-                    key={session.id} 
-                    className="glass-card" 
+                  <div
+                    key={session.id}
+                    className="glass-card"
                     style={{ padding: '1rem', cursor: 'pointer', border: currentSession?.id === session.id ? '1px solid var(--primary)' : '1px solid var(--glass-border)' }}
                     onClick={() => setCurrentSession(session)}
                   >

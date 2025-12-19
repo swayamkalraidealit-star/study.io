@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from enum import Enum
+from datetime import datetime
 
 class UserRole(str, Enum):
     USER = "user"
@@ -26,6 +27,8 @@ class UserUpdate(UserBase):
 class UserInDB(UserBase):
     id: str = Field(..., alias="_id")
     hashed_password: str
+    daily_generations: int = 0
+    last_generation_date: Optional[datetime] = None
 
 class UserResponse(UserBase):
     id: str

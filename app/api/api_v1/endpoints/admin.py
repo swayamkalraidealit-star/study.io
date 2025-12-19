@@ -70,6 +70,9 @@ async def get_usage_report(
                 "_id": None,
                 "total_openai_tokens": {"$sum": "$openai_tokens"},
                 "total_polly_characters": {"$sum": "$polly_characters"},
+                "total_openai_cost": {"$sum": "$openai_cost"},
+                "total_polly_cost": {"$sum": "$polly_cost"},
+                "total_cost": {"$sum": "$total_cost"},
                 "total_sessions": {"$sum": 1}
             }
         }
@@ -81,6 +84,9 @@ async def get_usage_report(
         return {
             "total_openai_tokens": 0,
             "total_polly_characters": 0,
+            "total_openai_cost": 0,
+            "total_polly_cost": 0,
+            "total_cost": 0,
             "total_sessions": 0
         }
     

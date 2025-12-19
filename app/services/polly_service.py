@@ -18,26 +18,52 @@ class PollyService:
         else:
             self.client = None
 
-    async def text_to_speech(self, text: str) -> tuple[bytes, int]:
+    async def text_to_speech(self, text: str) -> tuple[bytes, list[dict], int]:
         if not self.client:
             logger.warning("AWS Polly client not initialized. Returning mock audio data.")
-            return b"Mock audio data", len(text)
+            return b"Mock audio data", [], len(text)
 
         try:
             # Polly has a character limit per request
             text_to_synthesize = text[:3000]
-            response = self.client.synthesize_speech(
+            
+            # 1. Synthesize Audio
+            audio_response = self.client.synthesize_speech(
                 Text=text_to_synthesize,
                 OutputFormat="mp3",
                 VoiceId="Joanna",
                 Engine="neural"
             )
             
-            if "AudioStream" in response:
-                with closing(response["AudioStream"]) as stream:
-                    return stream.read(), len(text_to_synthesize)
+            audio_data = b""
+            if "AudioStream" in audio_response:
+                with closing(audio_response["AudioStream"]) as stream:
+                    audio_data = stream.read()
             else:
-                raise Exception("Could not synthesize speech")
+                raise Exception("Could not synthesize speech audio")
+
+            # 2. Synthesize Speech Marks (Timestamps)
+            marks_response = self.client.synthesize_speech(
+                Text=text_to_synthesize,
+                OutputFormat="json",
+                SpeechMarkTypes=["word"],
+                VoiceId="Joanna",
+                Engine="neural"
+            )
+
+            speech_marks = []
+            if "AudioStream" in marks_response:
+                with closing(marks_response["AudioStream"]) as stream:
+                    marks_text = stream.read().decode("utf-8")
+                    # Polly returns multiple JSON objects, one per line
+                    for line in marks_text.strip().split("\n"):
+                        if line:
+                            import json
+                            speech_marks.append(json.loads(line))
+            else:
+                logger.warning("Could not synthesize speech marks")
+
+            return audio_data, speech_marks, len(text_to_synthesize)
                 
         except Exception as e:
             logger.error(f"Error in Polly synthesis: {e}")
