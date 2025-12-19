@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { LogIn, UserPlus } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,7 +35,10 @@ const Login = () => {
 
   return (
     <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
+      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+          <ThemeToggle />
+        </div>
         <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>

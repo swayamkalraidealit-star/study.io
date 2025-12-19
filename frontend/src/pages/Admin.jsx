@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { Users, Settings, BarChart3, Shield, Plus, Save, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Admin = () => {
   const [users, setUsers] = useState([]);
@@ -67,14 +68,17 @@ const Admin = () => {
         <h1 style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Shield size={32} color="var(--primary)" /> Admin Control Center
         </h1>
-        <button 
-          onClick={handleLogout}
-          className="btn btn-secondary"
-          style={{ padding: '0.5rem', minWidth: 'auto' }}
-          title="Logout"
-        >
-          <LogOut size={18} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeToggle />
+          <button 
+            onClick={handleLogout}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem', minWidth: 'auto' }}
+            title="Logout"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-2">

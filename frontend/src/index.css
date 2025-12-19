@@ -1,6 +1,12 @@
 :root {
   --primary: #6366f1;
   --primary-hover: #4f46e5;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+}
+
+:root[data-theme='dark'] {
   --bg-dark: #0f172a;
   --bg-card: rgba(30, 41, 59, 0.7);
   --text-main: #f8fafc;
@@ -8,9 +14,16 @@
   --border: rgba(255, 255, 255, 0.1);
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
+}
+
+:root[data-theme='light'] {
+  --bg-dark: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --border: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.05);
+  --glass-border: rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -90,8 +103,13 @@ body {
   transition: border-color 0.2s;
 }
 
-.input-group input:focus {
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
   border-color: var(--primary);
+}
+
+.input-group select option {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
 }
 
 .container {

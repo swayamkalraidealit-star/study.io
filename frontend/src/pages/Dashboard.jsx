@@ -3,6 +3,7 @@ import api from '../api';
 import AudioPlayer from '../components/AudioPlayer';
 import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Dashboard = () => {
   const [prompt, setPrompt] = useState('');
@@ -104,6 +105,7 @@ const Dashboard = () => {
             <div className={`badge badge-${user.plan}`}>
               {user.plan.toUpperCase()} PLAN
             </div>
+            <ThemeToggle />
             <button 
               onClick={handleLogout}
               className="btn btn-secondary"
