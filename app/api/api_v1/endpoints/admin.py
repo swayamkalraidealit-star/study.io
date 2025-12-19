@@ -59,6 +59,15 @@ async def get_all_users(
     users = await cursor.to_list(length=100)
     return [{**u, "id": u["_id"]} for u in users]
 
+@router.get("/sessions")
+async def get_all_sessions(
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    current_user: Any = Depends(deps.get_current_active_admin),
+) -> Any:
+    cursor = db["study_sessions"].find().sort("created_at", -1)
+    sessions = await cursor.to_list(length=100)
+    return [{**s, "id": s["_id"]} for s in sessions]
+
 @router.get("/usage-report")
 async def get_usage_report(
     db: AsyncIOMotorDatabase = Depends(get_database),
@@ -81,7 +90,7 @@ async def get_usage_report(
     result = await cursor.to_list(length=1)
     
     if not result:
-        return {
+        summary = {
             "total_openai_tokens": 0,
             "total_polly_characters": 0,
             "total_openai_cost": 0,
@@ -89,5 +98,43 @@ async def get_usage_report(
             "total_cost": 0,
             "total_sessions": 0
         }
-    
-    return result[0]
+    else:
+        summary = result[0]
+
+    # Get detailed usage per user
+    user_pipeline = [
+        {
+            "$group": {
+                "_id": "$user_id",
+                "openai_tokens": {"$sum": "$openai_tokens"},
+                "polly_characters": {"$sum": "$polly_characters"},
+                "total_cost": {"$sum": "$total_cost"},
+                "sessions": {"$sum": 1}
+            }
+        },
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "_id",
+                "foreignField": "_id",
+                "as": "user_info"
+            }
+        },
+        {"$unwind": "$user_info"},
+        {
+            "$project": {
+                "email": "$user_info.email",
+                "openai_tokens": 1,
+                "polly_characters": 1,
+                "total_cost": 1,
+                "sessions": 1
+            }
+        }
+    ]
+    user_cursor = db["usage"].aggregate(user_pipeline)
+    user_usage = await user_cursor.to_list(length=100)
+
+    return {
+        "summary": summary,
+        "user_usage": user_usage
+    }

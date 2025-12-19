@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import AudioPlayer from '../components/AudioPlayer';
-import { BookOpen, History, Send, Sparkles, Clock, Tag } from 'lucide-react';
+import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const [prompt, setPrompt] = useState('');
@@ -12,6 +13,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const [examMode, setExamMode] = useState(false);
   const [textHighlighting, setTextHighlighting] = useState(false);
@@ -81,6 +83,11 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   return (
     <div className="container animate-fade-in">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
@@ -97,6 +104,14 @@ const Dashboard = () => {
             <div className={`badge badge-${user.plan}`}>
               {user.plan.toUpperCase()} PLAN
             </div>
+            <button 
+              onClick={handleLogout}
+              className="btn btn-secondary"
+              style={{ padding: '0.5rem', minWidth: 'auto' }}
+              title="Logout"
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         )}
       </header>

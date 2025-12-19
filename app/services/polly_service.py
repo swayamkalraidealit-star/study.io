@@ -25,7 +25,7 @@ class PollyService:
 
         try:
             # Polly has a character limit per request
-            text_to_synthesize = text[:3000]
+            text_to_synthesize = text[:100]
             
             # 1. Synthesize Audio
             audio_response = self.client.synthesize_speech(

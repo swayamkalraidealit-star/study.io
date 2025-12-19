@@ -10,8 +10,10 @@ from app.schemas.admin import AppConfig
 from app.db.mongodb import get_database
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
+from app.core.rate_limit import generation_limiter, audio_limiter
+from app.core import security
 
 router = APIRouter()
 
@@ -30,7 +32,8 @@ async def generate_study_session(
     *,
     db: AsyncIOMotorDatabase = Depends(get_database),
     current_user: UserInDB = Depends(deps.get_current_active_user),
-    study_in: StudyPrompt
+    study_in: StudyPrompt,
+    _ = Depends(generation_limiter)
 ) -> Any:
     # Fetch dynamic config
     config = await db["config"].find_one({"_id": "app_config"})
@@ -155,11 +158,16 @@ async def generate_study_session(
     }
     await db["usage"].insert_one(usage_dict)
     
+    # Generate short-lived audio token
+    audio_token = security.create_access_token(
+        subject=session_id, expires_delta=timedelta(hours=1)
+    )
+    
     return {
         "id": session_id,
         "topic": study_in.topic,
         "content": content,
-        "audio_url": f"/api/v1/study/audio/{session_id}",
+        "audio_url": f"/api/v1/study/audio/{session_id}?token={audio_token}",
         "listen_count": 0,
         "speech_marks": speech_marks,
         "created_at": session_dict["created_at"]
@@ -178,7 +186,7 @@ async def get_study_history(
             "id": s["_id"],
             "topic": s["topic"],
             "content": s["content"],
-            "audio_url": f"/api/v1/study/audio/{s['_id']}",
+            "audio_url": f"/api/v1/study/audio/{s['_id']}?token={security.create_access_token(subject=s['_id'], expires_delta=timedelta(hours=1))}",
             "created_at": s["created_at"]
         }
         for s in sessions
@@ -187,12 +195,32 @@ async def get_study_history(
 @router.get("/audio/{session_id}")
 async def get_study_audio(
     session_id: str,
+    token: str,
     db: AsyncIOMotorDatabase = Depends(get_database),
-    current_user: UserInDB = Depends(deps.get_current_active_user),
+    _ = Depends(audio_limiter)
 ) -> Any:
-    session = await db["study_sessions"].find_one({"_id": session_id, "user_id": current_user.id})
+    # Verify short-lived token
+    try:
+        from jose import jwt
+        from app.core.config import settings
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        if payload.get("sub") != session_id:
+            raise HTTPException(status_code=403, detail="Invalid audio token")
+    except Exception:
+        raise HTTPException(status_code=403, detail="Invalid or expired audio token")
+
+    session = await db["study_sessions"].find_one({"_id": session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get user to check plan and listen count
+    user = await db["users"].find_one({"_id": session["user_id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    current_user = UserInDB(**user)
     
     # Check listen limit for trial users
     if current_user.plan == UserPlan.TRIAL:

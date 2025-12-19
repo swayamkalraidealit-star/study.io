@@ -9,9 +9,9 @@ class TopicPreset(BaseModel):
 class AppConfig(BaseModel):
     allowed_durations: List[int] = [3, 5, 10]
     character_limits: dict = {
-        "3": 2500,
-        "5": 4500,
-        "10": 9000
+        "3": 100,
+        "5": 100,
+        "10": 100
     }
     trial_limit_sessions: int = 3
     daily_generation_limit: int = 5
