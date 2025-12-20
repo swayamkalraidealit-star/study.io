@@ -66,7 +66,18 @@ async def get_all_sessions(
 ) -> Any:
     cursor = db["study_sessions"].find().sort("created_at", -1)
     sessions = await cursor.to_list(length=100)
-    return [{**s, "id": s["_id"]} for s in sessions]
+    # Exclude audio_data (binary) to prevent serialization errors
+    return [{
+        "id": s["_id"],
+        "user_id": s.get("user_id"),
+        "topic": s.get("topic"),
+        "prompt": s.get("prompt"),
+        "content": s.get("content"),
+        "duration_minutes": s.get("duration_minutes"),
+        "exam_mode": s.get("exam_mode"),
+        "listen_count": s.get("listen_count", 0),
+        "created_at": s.get("created_at")
+    } for s in sessions]
 
 @router.get("/usage-report")
 async def get_usage_report(
