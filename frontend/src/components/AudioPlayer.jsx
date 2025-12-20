@@ -141,7 +141,16 @@ const AudioPlayer = ({ src, title, userPlan, listenCount, content, speechMarks =
                         value={playbackSpeed}
                         onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
                         disabled={isTrial}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.875rem', outline: 'none', cursor: isTrial ? 'not-allowed' : 'pointer' }}
+                        style={{ 
+                            background: 'var(--bg-secondary)', 
+                            border: '1px solid var(--border-color)', 
+                            color: 'var(--text-main)', 
+                            fontSize: '0.875rem', 
+                            outline: 'none', 
+                            cursor: isTrial ? 'not-allowed' : 'pointer',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px'
+                        }}
                     >
                         <option value="0.75">0.75x</option>
                         <option value="1">1.0x</option>
