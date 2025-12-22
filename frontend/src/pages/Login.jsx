@@ -10,11 +10,17 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
+    setShowResendVerification(false);
+
     try {
       if (isLogin) {
         const formData = new FormData();
@@ -24,12 +30,34 @@ const Login = () => {
         localStorage.setItem('token', response.data.access_token);
         navigate('/dashboard');
       } else {
-        await api.post('/auth/register', { email, password, full_name: fullName });
-        setIsLogin(true);
-        setError('Registration successful! Please login.');
+        const response = await api.post('/auth/register', { email, password, full_name: fullName });
+        setSuccessMessage(response.data.message);
+        setResendEmail(email);
+        // Clear form
+        setEmail('');
+        setPassword('');
+        setFullName('');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'An error occurred');
+      const errorMsg = err.response?.data?.detail || 'An error occurred';
+      setError(errorMsg);
+
+      // Check if error is about email verification
+      if (errorMsg.includes('verify your email')) {
+        setShowResendVerification(true);
+        setResendEmail(email);
+      }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setError('');
+      await api.post('/auth/resend-verification', { email: resendEmail });
+      setSuccessMessage('Verification email sent! Please check your inbox.');
+      setShowResendVerification(false);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to resend verification email');
     }
   };
 
@@ -42,8 +70,22 @@ const Login = () => {
         <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
-        
-        {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{error}</div>}
+
+        {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem', padding: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>{error}</div>}
+        {successMessage && <div style={{ color: 'var(--success)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem', padding: '0.75rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px' }}>{successMessage}</div>}
+
+        {showResendVerification && (
+          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+            >
+              Resend Verification Email
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {!isLogin && (
@@ -60,7 +102,7 @@ const Login = () => {
             <label>Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
-          
+
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>
             {isLogin ? <><LogIn size={18} /> Login</> : <><UserPlus size={18} /> Register</>}
           </button>
@@ -68,8 +110,8 @@ const Login = () => {
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <span 
-            onClick={() => setIsLogin(!isLogin)} 
+          <span
+            onClick={() => setIsLogin(!isLogin)}
             style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}
           >
             {isLogin ? 'Register' : 'Login'}

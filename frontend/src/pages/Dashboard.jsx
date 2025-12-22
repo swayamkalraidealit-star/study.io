@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import AudioPlayer from '../components/AudioPlayer';
-import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut, Shield } from 'lucide-react';
+import { BookOpen, History, Send, Sparkles, Clock, Tag, LogOut, Shield, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -108,6 +108,24 @@ const Dashboard = () => {
             <div className={`badge badge-${user.plan}`}>
               {user.plan.toUpperCase()} PLAN
             </div>
+            {user.plan === 'trial' && (
+              <button 
+                onClick={() => navigate('/upgrade')}
+                className="btn btn-primary"
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+                  animation: 'pulse 2s infinite'
+                }}
+                title="Upgrade to Premium"
+              >
+                <Crown size={18} />
+                Upgrade
+              </button>
+            )}
             <ThemeToggle />
             {user.role === 'admin' && (
               <button 

@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
+import VerifyEmail from './pages/VerifyEmail';
+import Upgrade from './pages/Upgrade';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -14,6 +16,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/dashboard"
           element={
@@ -27,6 +30,14 @@ function App() {
           element={
             <PrivateRoute>
               <Admin />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/upgrade"
+          element={
+            <PrivateRoute>
+              <Upgrade />
             </PrivateRoute>
           }
         />

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt
 import bcrypt
+import secrets
 from app.core.config import settings
 
 def create_access_token(
@@ -28,3 +29,11 @@ def get_password_hash(password: str) -> str:
         password.encode("utf-8"), 
         bcrypt.gensalt()
     ).decode("utf-8")
+
+def create_verification_token() -> str:
+    """Generate a secure random verification token"""
+    return secrets.token_urlsafe(32)
+
+def verify_token_expiry(expires: datetime) -> bool:
+    """Check if a token has expired"""
+    return datetime.utcnow() < expires

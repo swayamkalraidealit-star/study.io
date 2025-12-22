@@ -8,8 +8,8 @@ async def create_admin():
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     db = client[settings.DATABASE_NAME]
     
-    email = "admin@study29.io"
-    password = "adminpassword12"
+    email = input("Enter Gmail Id:")
+    password = input("Enter Password:")
     
     user = await db["users"].find_one({"email": email})
     if user:

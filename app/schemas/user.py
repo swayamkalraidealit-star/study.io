@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
+    is_email_verified: bool = False
     role: UserRole = UserRole.USER
     plan: UserPlan = UserPlan.TRIAL
 
@@ -29,6 +30,8 @@ class UserInDB(UserBase):
     hashed_password: str
     daily_generations: int = 0
     last_generation_date: Optional[datetime] = None
+    verification_token: Optional[str] = None
+    verification_token_expires: Optional[datetime] = None
 
 class UserResponse(UserBase):
     id: str
