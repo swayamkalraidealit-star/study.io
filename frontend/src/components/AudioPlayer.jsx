@@ -117,21 +117,6 @@ const AudioPlayer = ({ src, title, userPlan, listenCount, content, speechMarks =
                 <button onClick={togglePlay} className="btn btn-primary" style={{ borderRadius: '50%', width: '3rem', height: '3rem', padding: 0, justifyContent: 'center' }}>
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                 </button>
-
-                <div style={{ flex: 1 }}>
-                    <input
-                        type="range"
-                        min="0"
-                        max={duration || 0}
-                        value={currentTime}
-                        onChange={handleSeek}
-                        style={{ width: '100%', accentColor: 'var(--primary)' }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                        <span>{formatTime(currentTime)}</span>
-                        <span>{formatTime(duration)}</span>
-                    </div>
-                </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -142,8 +127,8 @@ const AudioPlayer = ({ src, title, userPlan, listenCount, content, speechMarks =
                         onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
                         disabled={isTrial}
                         style={{ 
-                            background: 'var(--bg-secondary)', 
-                            border: '1px solid var(--border-color)', 
+                            background: 'rgba(0, 0, 0, 0.2)', 
+                            border: '1px solid rgba(255, 255, 255, 0.2)', 
                             color: 'var(--text-main)', 
                             fontSize: '0.875rem', 
                             outline: 'none', 
