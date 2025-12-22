@@ -103,6 +103,24 @@ const Login = () => {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
 
+          {isLogin && (
+            <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+              <span
+                onClick={() => navigate('/forgot-password')}
+                style={{ 
+                  color: 'var(--text-muted)', 
+                  cursor: 'pointer', 
+                  fontSize: '0.875rem',
+                  textDecoration: 'none'
+                }}
+                onMouseEnter={(e) => e.target.style.color = 'var(--primary)'}
+                onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
+              >
+                Forgot Password?
+              </span>
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>
             {isLogin ? <><LogIn size={18} /> Login</> : <><UserPlus size={18} /> Register</>}
           </button>

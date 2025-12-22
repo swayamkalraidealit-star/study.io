@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import VerifyEmail from './pages/VerifyEmail';
 import Upgrade from './pages/Upgrade';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -17,6 +19,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/dashboard"
           element={

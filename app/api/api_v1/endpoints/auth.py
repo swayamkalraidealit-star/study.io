@@ -166,6 +166,88 @@ async def resend_verification(
     
     return {"message": "If an account exists with this email, a verification email has been sent."}
 
+@router.post("/forgot-password")
+async def forgot_password(
+    email: EmailStr = Body(..., embed=True),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> Any:
+    """Request password reset email"""
+    user = await db["users"].find_one({"email": email})
+    
+    # Always return generic success message to avoid user enumeration
+    if not user:
+        return {"message": "If an account exists with this email, a password reset link has been sent."}
+    
+    # Generate password reset token
+    reset_token = security.create_verification_token()
+    
+    await db["users"].update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "reset_token": reset_token,
+                "reset_token_expires": datetime.utcnow() + timedelta(hours=1)
+            }
+        }
+    )
+    
+    # Send password reset email
+    email_sent = await email_service.send_password_reset_email(email, reset_token)
+    
+    if not email_sent:
+        logger.warning(f"Failed to send password reset email to {email}")
+    
+    return {"message": "If an account exists with this email, a password reset link has been sent."}
+
+@router.post("/reset-password")
+async def reset_password(
+    token: str = Body(...),
+    new_password: str = Body(...),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> Any:
+    """Reset password using reset token"""
+    user = await db["users"].find_one({"reset_token": token})
+    
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Check if token is expired
+    if not user.get("reset_token_expires"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token"
+        )
+    
+    if not security.verify_token_expiry(user["reset_token_expires"]):
+        raise HTTPException(
+            status_code=400,
+            detail="Reset token has expired. Please request a new password reset."
+        )
+    
+    # Update password and clear reset token
+    hashed_password = security.get_password_hash(new_password)
+    
+    await db["users"].update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "hashed_password": hashed_password,
+                "reset_token": None,
+                "reset_token_expires": None
+            }
+        }
+    )
+    
+    logger.info(f"Password reset successful for user {user['email']}")
+    
+    return {
+        "message": "Password reset successful! You can now log in with your new password.",
+        "email": user["email"]
+    }
+
 @router.get("/me", response_model=UserResponse)
 async def read_user_me(
     current_user: UserInDB = Depends(deps.get_current_active_user),

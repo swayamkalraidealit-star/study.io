@@ -32,6 +32,8 @@ class UserInDB(UserBase):
     last_generation_date: Optional[datetime] = None
     verification_token: Optional[str] = None
     verification_token_expires: Optional[datetime] = None
+    reset_token: Optional[str] = None
+    reset_token_expires: Optional[datetime] = None
 
 class UserResponse(UserBase):
     id: str
